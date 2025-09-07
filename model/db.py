@@ -28,7 +28,7 @@ def insert_initial_items() -> None:
 
     today = date.today()
 
-    breakfast_today = Meal(day=today)
+    breakfast_today = Meal(day=today, meal_type="breakfast")
     breakfast_today.items = [
             MealItem(food=foods["Greek yogurt (plain)"], quantity=2.0),  
             MealItem(food=foods["Banana"], quantity=1.0),               
