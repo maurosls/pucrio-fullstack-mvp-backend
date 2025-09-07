@@ -1,30 +1,27 @@
-from typing import Any, Dict, Optional
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Integer, Float, ForeignKey
-from .base import Base
+from typing import Any, Dict
+from model.db import db
 
-class MealItem(Base):
+class MealItem(db.Model):
     __tablename__ = "meal_item"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    meal_id: Mapped[int] = mapped_column(ForeignKey("meal.id"), nullable=False)
-    food_id: Mapped[int] = mapped_column(ForeignKey("food.id"), nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    meal_id = db.Column(db.Integer, db.ForeignKey("meal.id"), nullable=False)
+    food_id = db.Column(db.Integer, db.ForeignKey("food.id"), nullable=False)
+    quantity = db.Column(db.Float, nullable=False, default=1.0)
 
-    quantity: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
-
-    meal: Mapped["Meal"] = relationship("Meal", back_populates="items")
-    food: Mapped[Optional["Food"]] = relationship("Food")
+    meal = db.relationship("Meal", back_populates="items")
+    food = db.relationship("Food")
 
     def calories(self) -> float:
         return (self.quantity or 0.0) * (self.food.calories if self.food else 0.0)
 
     def to_dict(self) -> Dict[str, Any]:
-        return dict(
-            id=self.id,
-            food=self.food.to_dict() if self.food else None,
-            quantity=self.quantity,
-            calories=self.calories(),
-        )
+        return {
+            "id": self.id,
+            "food": self.food.to_dict() if self.food else None,
+            "quantity": self.quantity,
+            "calories": self.calories(),
+        }
 
     def __repr__(self) -> str:
         return f"<MealItem food_id={self.food_id} qty={self.quantity}>"
