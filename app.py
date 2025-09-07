@@ -5,6 +5,8 @@ from model.db import insert_initial_items, db
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from model import food
+from sqlalchemy.orm import joinedload
+from sqlalchemy import inspect
 
 info = Info(title="Meal Tracker API", version="1.0.0")
 app = OpenAPI(__name__, info=info)
@@ -23,6 +25,7 @@ with app.app_context():
 # Return all existing foods
 @app.get("/foods")
 def list_foods():
+    print(inspect(db.engine).get_columns("meal"))
     foods = Food.query.all()
     return jsonify([f.to_dict() for f in foods])
 
@@ -35,8 +38,13 @@ def create_meal():
 # Return all existing meals
 @app.get("/meals")
 def list_meals_for_day():
-    meals = Meal.query.order_by(Meal.day.asc()).all()
-    return jsonify([f.to_dict() for f in meals])
+    q = (Meal.query
+         .options(
+            joinedload(Meal.items)
+            .joinedload(MealItem.food))
+         .order_by(Meal.day.asc(), Meal.created_at.asc()))
+    meals = q.all()
+    return jsonify([m.to_dict() for m in meals]), 200
 
 #rReturn specific meal
 @app.get("/meals/<int:meal_id>")
@@ -58,3 +66,4 @@ def total_for_day():
 
 if __name__ == "__main__":
     app.run(debug=True)
+    print(inspect(db.engine).get_columns("meal"))
