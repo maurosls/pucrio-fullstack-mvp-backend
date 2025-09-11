@@ -125,7 +125,7 @@ def add_item(path: MealPath, body: MealItemIn):
 def total_for_day():
     from model.meal import Meal
 
-    qs = request.args.get("date")           # str | None
+    qs = request.args.get("date")
     d = date.fromisoformat(qs) if qs else date.today()
 
     meals = Meal.query.filter(Meal.day == d).all()

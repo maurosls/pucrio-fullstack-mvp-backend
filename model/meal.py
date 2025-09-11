@@ -8,7 +8,6 @@ class Meal(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     day = db.Column(db.Date, nullable=False, index=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     meal_type = db.Column(db.Enum(MealType, name="meal_type", native_enum=False, validate_strings=True),
         nullable=False,
         index=True,
