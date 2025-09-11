@@ -26,6 +26,40 @@ A API sobe em `http://127.0.0.1:5000` por padrão do Flask.
 
 ---
 
+## Modelos (Tabelas)
+
+### Tabela `food`
+
+| Coluna     | Tipo         | Regras/Notas                       |
+| ---------- | ------------ | ---------------------------------- |
+| `id`       | INTEGER (PK) | Chave primária                     |
+| `name`     | STRING(120)  | **Único**, **NOT NULL**, **INDEX** |
+| `calories` | FLOAT        | **NOT NULL** – kcal por `amount`   |
+| `amount`   | FLOAT        | **NOT NULL**, default **100.0**    |
+| `unit`     | STRING(32)   | **NOT NULL**, default **"g"**      |
+
+### Tabela `meal`
+
+| Coluna      | Tipo                                                                           | Regras/Notas            |
+| ----------- | ------------------------------------------------------------------------------ | ----------------------- |
+| `id`        | INTEGER (PK)                                                                   | Chave primária          |
+| `day`       | DATE                                                                           | **NOT NULL**, **INDEX** |
+| `meal_type` | ENUM(`breakfast`,`lunch`,`dinner`,`snack`) *(armazenado como texto em SQLite)* | **NOT NULL**, **INDEX** |
+
+**Relações:** `meal` 1 — N `meal_item`
+
+### Tabela `meal_item`
+
+| Coluna     | Tipo         | Regras/Notas                  |
+| ---------- | ------------ | ----------------------------- |
+| `id`       | INTEGER (PK) | Chave primária                |
+| `meal_id`  | INTEGER (FK) | **NOT NULL**, ref. `meal.id`  |
+| `food_id`  | INTEGER (FK) | **NOT NULL**, ref. `food.id`  |
+| `quantity` | FLOAT        | **NOT NULL**, default **1.0** |
+
+**Relações:** cada `meal_item` referencia um `meal` e um `food`.
+
+
 ## Endpoints
 
 ### 1) Listar alimentos
