@@ -2,6 +2,7 @@ from __future__ import annotations
 from flask_openapi3 import OpenAPI, Info
 from model.db import insert_initial_items, db
 from typing import Optional, List
+from flask_cors import CORS
 
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
@@ -11,12 +12,16 @@ from sqlalchemy import inspect
 from datetime import date
 from pydantic import BaseModel
 
+from schemas.food import FoodSchema
+from schemas.meal import MealSchema, MealItemSchema, MealPath
+
 info = Info(title="Meal Tracker API", version="1.0.0")
 app = OpenAPI(__name__, info=info)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
+CORS(app)
 
 with app.app_context():
     from model.food import Food
@@ -24,18 +29,6 @@ with app.app_context():
     from model.meal_item import MealItem
     db.create_all()
     insert_initial_items()
-
-class MealPath(BaseModel):
-    meal_id: int
-
-class MealItemIn(BaseModel):
-    food_id: int
-    quantity: float = 1.0
-
-class MealIn(BaseModel):
-    day: Optional[date] = None
-    meal_type: str = "breakfast"
-    items: List[MealItemIn] = []
 
 def extractFoodData(payload: dict) -> Food:
     name = (payload.get("name") or "").strip()
@@ -52,7 +45,7 @@ def list_foods():
     return jsonify([f.to_dict() for f in foods])
 
 @app.post("/foods")
-def create_food():
+def create_food(body: FoodSchema):
     payload = request.get_json(silent=True) or {}
     f = extractFoodData(payload)
     db.session.add(f)
@@ -60,7 +53,7 @@ def create_food():
     return jsonify(f.to_dict()), 201
 
 @app.post("/meals")
-def create_meal(body: MealIn):
+def create_meal(body: MealSchema):
 
     day = body.day or date.today()
     meal_type = body.meal_type
@@ -106,7 +99,7 @@ def get_meal(path: MealPath):
 
 
 @app.post("/meals/<int:meal_id>/items")
-def add_item(path: MealPath, body: MealItemIn):
+def add_item(path: MealPath, body: MealItemSchema):
     meal = Meal.query.get(path.meal_id)
     food = Food.query.get(body.food_id)
 
