@@ -1,22 +1,22 @@
 from __future__ import annotations
-from flask_openapi3 import OpenAPI, Info
+from flask_openapi3 import OpenAPI, Info, Tag
 from model.db import insert_initial_items, db
-from typing import Optional, List
 from flask_cors import CORS
 
-from flask import Flask, jsonify, request
-from flask_sqlalchemy import SQLAlchemy
-from model import food
+from flask import jsonify, request
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy import inspect
 from datetime import date
-from pydantic import BaseModel
 
 from schemas.food import FoodSchema
-from schemas.meal import MealSchema, MealItemSchema, MealPath
+from schemas.meal import MealSchema, MealItemSchema, MealPath, MealQuery
 
 info = Info(title="Meal Tracker API", version="1.0.0")
 app = OpenAPI(__name__, info=info)
+
+meal_tag = Tag(name="Refeições", description="Operações relacionadas a refeições")
+food_tag = Tag(name="Alimentos", description="Operações relacionadas a alimentos")
+others_tag = Tag(name="Outros", description="Outras operações")
 
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -38,13 +38,13 @@ def extractFoodData(payload: dict) -> Food:
     return Food(name=name, calories=calories, amount=amount, unit=unit)
 
 
-@app.get("/foods")
+@app.get("/foods", tags=[food_tag], description="Listar todos os alimentos")
 def list_foods():
     print(inspect(db.engine).get_columns("meal"))
     foods = Food.query.all()
     return jsonify([f.to_dict() for f in foods])
 
-@app.post("/foods")
+@app.post("/foods", tags=[food_tag], description="Criar um novo alimento")
 def create_food(body: FoodSchema):
     payload = request.get_json(silent=True) or {}
     f = extractFoodData(payload)
@@ -52,7 +52,7 @@ def create_food(body: FoodSchema):
     db.session.commit()
     return jsonify(f.to_dict()), 201
 
-@app.post("/meals")
+@app.post("/meals", tags=[meal_tag], description="Criar uma nova refeição")
 def create_meal(body: MealSchema):
 
     day = body.day or date.today()
@@ -68,24 +68,22 @@ def create_meal(body: MealSchema):
     db.session.commit()
     return jsonify(meal.to_dict()), 201
 
-@app.get("/meals")
-def list_meals_for_day():
+@app.get("/meals", tags=[meal_tag], description="Listar todas as refeições, opcionalmente filtrando por dia")
+def list_meals_for_day(query: MealQuery):
     q = (Meal.query
          .options(
             joinedload(Meal.items)
             .joinedload(MealItem.food))
          .order_by(Meal.day.asc(), Meal.day.asc()))
     
-    date_str = request.args.get("date")
-
-    if date_str:
-        d = date.fromisoformat(date_str)
+    if query.date:
+        d = date.fromisoformat(query.date)
         q = q.filter(Meal.day == d)
 
     meals = q.all()
     return jsonify([m.to_dict() for m in meals]), 200
 
-@app.get("/meals/<int:meal_id>")
+@app.get("/meals/<int:meal_id>", tags=[meal_tag], description="Obter detalhes de uma refeição específica")
 def get_meal(path: MealPath):
     meal = (
         Meal.query
@@ -98,7 +96,7 @@ def get_meal(path: MealPath):
     return jsonify(meal.to_dict()), 200
 
 
-@app.post("/meals/<int:meal_id>/items")
+@app.post("/meals/<int:meal_id>/items", tags=[meal_tag], description="Adicionar um item a uma refeição existente")
 def add_item(path: MealPath, body: MealItemSchema):
     meal = Meal.query.get(path.meal_id)
     food = Food.query.get(body.food_id)
@@ -114,7 +112,7 @@ def add_item(path: MealPath, body: MealItemSchema):
     )
     return jsonify({"item": item.to_dict(), "meal": meal.to_dict()}), 201
 
-@app.get("/total")
+@app.get("/total", tags=[others_tag], description="Obter o total de calorias consumidas em um dia específico")
 def total_for_day():
     from model.meal import Meal
 

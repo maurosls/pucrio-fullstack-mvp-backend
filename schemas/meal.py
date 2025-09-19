@@ -14,3 +14,6 @@ class MealSchema(BaseModel):
     day: Optional[date] = None
     meal_type: str = "breakfast"
     items: List[MealItemSchema] = []
+
+class MealQuery(BaseModel):
+    date: Optional[str] = None
